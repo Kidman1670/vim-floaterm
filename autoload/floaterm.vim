@@ -53,6 +53,30 @@ function! floaterm#run(action, bang, ...) abort
     call floaterm#new(a:bang, cmd, winopts, {})
   elseif a:action == 'update'
     call floaterm#update(winopts)
+  elseif a:action == 'show'
+    if a:bang
+      call floaterm#show()
+    else
+      call floaterm#show(a:1)
+    endif
+  elseif a:action == 'hide'
+    if a:bang
+      call floaterm#hide()
+    else
+      call floaterm#hide(a:1)
+    endif
+  elseif a:action == 'kill'
+    if a:bang
+      call floaterm#kill()
+    else
+      call floaterm#kill(a:1)
+    endif
+  elseif a:action == 'toggle'
+    if a:bang
+      call floaterm#toggle()
+    else
+      call floaterm#toggle(a:1)
+    endif
   endif
 endfunction
 
@@ -89,8 +113,8 @@ endfunction
 " ----------------------------------------------------------------------------
 " toggle on/off the floaterm named `name`
 " ----------------------------------------------------------------------------
-function! floaterm#toggle(bang, name)  abort
-  if a:bang
+function! floaterm#toggle(...)  abort
+  if a:0 == 0
     let found_winnr = floaterm#window#find_floaterm_window()
     if found_winnr > 0
       for bufnr in floaterm#buflist#gather()
@@ -104,26 +128,29 @@ function! floaterm#toggle(bang, name)  abort
     return
   endif
 
-  if !empty(a:name)
-    let bufnr = floaterm#terminal#get_bufnr(a:name)
-    if bufnr == -1
-      call floaterm#util#show_msg('No floaterm found with name: ' . a:name, 'error')
-      return
-    elseif bufnr == bufnr('%')
-      call floaterm#window#hide_floaterm(bufnr)
-    elseif bufwinnr(bufnr) > -1
-      execute bufwinnr(bufnr) . 'wincmd w'
+  if a:1 == ''
+    if &filetype == 'floaterm'
+      call floaterm#window#hide_floaterm(bufnr('%'))
     else
-      call floaterm#terminal#open_existing(bufnr)
+      let found_winnr = floaterm#window#find_floaterm_window()
+      if found_winnr > 0
+        execute found_winnr . 'wincmd w'
+      else
+        call floaterm#curr()
+      endif
     endif
-  elseif &filetype == 'floaterm'
-    call floaterm#window#hide_floaterm(bufnr('%'))
   else
-    let found_winnr = floaterm#window#find_floaterm_window()
-    if found_winnr > 0
-      execute found_winnr . 'wincmd w'
+    let bufnr = floaterm#terminal#get_bufnr(a:1)
+    if bufnr != -1
+      if bufnr == bufnr('%')
+        call floaterm#window#hide_floaterm(bufnr)
+      elseif bufwinnr(bufnr) > -1
+        execute bufwinnr(bufnr) . 'wincmd w'
+      else
+        call floaterm#terminal#open_existing(bufnr)
+      endif
     else
-      call floaterm#curr()
+      call floaterm#util#show_msg('The floaterm does not exist', 'warning')
     endif
   endif
 endfunction
@@ -175,18 +202,18 @@ function! floaterm#curr() abort
   return curr_bufnr
 endfunction
 
-function! floaterm#kill(bang, name) abort
-  if a:bang
+function! floaterm#kill(...) abort
+  if a:000 == 0
     for bufnr in floaterm#buflist#gather()
       call floaterm#terminal#kill(bufnr)
     endfor
     return
   endif
 
-  if !empty(a:name)
-    let bufnr = floaterm#terminal#get_bufnr(a:name)
+  if a:1 == ''
+    let bufnr = bufnr('%')
   else
-    let bufnr = floaterm#buflist#find_curr()
+    let bufnr = floaterm#terminal#get_bufnr(a:1)
   endif
   if bufnr != -1
     call floaterm#terminal#kill(bufnr)
@@ -195,18 +222,18 @@ function! floaterm#kill(bang, name) abort
   endif
 endfunction
 
-function! floaterm#show(bang, name) abort
-  if a:bang
+function! floaterm#show(...) abort
+  if a:0 == 0
     for bufnr in floaterm#buflist#gather()
       call floaterm#terminal#open_existing(bufnr)
     endfor
     return
   endif
 
-  if !empty(a:name)
-    let bufnr = floaterm#terminal#get_bufnr(a:name)
+  if a:1 == ''
+    let bufnr = bufnr('%')
   else
-    let bufnr = floaterm#buflist#find_curr()
+    let bufnr = floaterm#terminal#get_bufnr(a:1)
   endif
   if bufnr != -1
     call floaterm#util#autohide()
@@ -216,18 +243,18 @@ function! floaterm#show(bang, name) abort
   endif
 endfunction
 
-function! floaterm#hide(bang, name) abort
-  if a:bang
+function! floaterm#hide(...) abort
+  if a:0 == 0
     for bufnr in floaterm#buflist#gather()
       call floaterm#window#hide_floaterm(bufnr)
     endfor
     return
   endif
 
-  if !empty(a:name)
-    let bufnr = floaterm#terminal#get_bufnr(a:name)
-  else
+  if a:1 == ''
     let bufnr = bufnr('%')
+  else
+    let bufnr = floaterm#terminal#get_bufnr(a:1)
   endif
   if bufnr != -1
     call floaterm#window#hide_floaterm(bufnr)
